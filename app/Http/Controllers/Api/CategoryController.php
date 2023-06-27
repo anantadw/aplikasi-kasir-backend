@@ -3,16 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\BarangDetailResource;
-use App\Http\Resources\BarangResourceCollection;
-use App\Models\Barang;
+use App\Models\Category;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
-class BarangApiController extends Controller
+class CategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -20,14 +18,15 @@ class BarangApiController extends Controller
     public function index()
     {
         try {
-            $barang = Barang::all();
+            $categories = Category::all();
+
             return response()->json([
-                'status' => 200,
-                'data' => $barang
+                'code' => 200,
+                'data' => $categories
             ], 200);
         } catch (Exception $e) {
             return response()->json([
-                'status' => 500,
+                'code' => 500,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -40,36 +39,22 @@ class BarangApiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'barcode' => 'required',
-                'nama' => 'required',
-                'harga' => 'required',
-                'stok' => 'required',
-                'jenis' => 'required',
-                'gambar' => 'required|image',
+                'name' => 'required|string|max:50|unique:categories,name',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
-                    'status' => 400,
+                    'code' => 400,
                     'errors' => $validator->errors()
                 ], 400);
             }
 
-            $data = $validator->validated();
-            $gambar = $validator->validated()['gambar'];
-            $nama_gambar = $gambar->hashName();
-            $gambar->storeAs('public/images', $nama_gambar);
-            $data['gambar'] = $nama_gambar;
+            Category::create($validator->validated());
 
-            $barang = Barang::create($data);
-
-            return response()->json([
-                'status' => 201,
-                'data' => $barang
-            ], 201);
+            return response()->json(['code' => 201], 201);
         } catch (Exception $e) {
             return response()->json([
-                'status' => 500,
+                'code' => 500,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -81,10 +66,11 @@ class BarangApiController extends Controller
     public function show(string $id)
     {
         try {
-            $barang = Barang::findOrFail($id);
+            $category = Category::findOrFail($id);
+
             return response()->json([
                 'status' => 200,
-                'data' => $barang
+                'data' => $category
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -105,46 +91,33 @@ class BarangApiController extends Controller
     public function update(Request $request, string $id)
     {
         try {
-            $barang = Barang::findOrFail($id);
+            $category = Category::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'barcode' => 'required',
-                'nama' => 'required',
-                'harga' => 'required',
-                'stok' => 'required',
-                'jenis' => 'required',
-                'gambar' => 'nullable|image',
+                'name' => [
+                    'required', 'string', 'max:50',
+                    Rule::unique('categories', 'name')->ignore($id)
+                ],
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
-                    'status' => 400,
+                    'code' => 400,
                     'errors' => $validator->errors()
                 ], 400);
             }
 
-            $data = $validator->validated();
-            if ($data['gambar']) {
-                Storage::delete('public/images/' . $barang->gambar);
-                $gambar = $validator->validated()['gambar'];
-                $nama_gambar = $gambar->hashName();
-                $gambar->storeAs('public/images', $nama_gambar);
-                $data['gambar'] = $nama_gambar;
-            }
-            $barang->update($data);
+            $category->update($validator->validated());
 
-            return response()->json([
-                'status' => 200,
-                'data' => $barang
-            ], 200);
+            return response()->json(['code' => 200], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'status' => 404,
+                'code' => 404,
                 'message' => $e->getMessage()
             ], 404);
         } catch (Exception $e) {
             return response()->json([
-                'status' => 500,
+                'code' => 500,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -156,9 +129,9 @@ class BarangApiController extends Controller
     public function destroy(string $id)
     {
         try {
-            $barang = Barang::findOrFail($id);
-            Storage::delete('public/images/' . $barang->gambar);
-            $barang->delete();
+            $category = Category::findOrFail($id);
+            $category->delete();
+
             return response()->json([
                 'status' => 200
             ], 200);

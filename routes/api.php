@@ -1,6 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\BarangApiController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,4 +21,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::apiResource('barang', BarangApiController::class);
+Route::apiResource('categories', CategoryController::class);
+Route::apiResource('menus', MenuController::class);
+Route::apiResource('transactions', TransactionController::class)->except(['update', 'delete']);
